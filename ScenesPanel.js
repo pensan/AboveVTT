@@ -73,7 +73,7 @@ function handle_map_toggle_click(event){
 	handle_basic_form_toggle_click(event)
 	// validate image input expects the target to be the input not the t oggle
 
-	validate_image_input($(event.currentTarget).prev().find("input")[0])
+	validate_image_input($(event.currentTarget).parent().find("input")[0])
 }
 
 
@@ -90,7 +90,7 @@ function get_edit_form_data(){
 		else if ($(this).is("button")){
 			inputValue = $(this).hasClass("rc-switch-checked") ? "1" : "0"
 		}
-		
+
 		data[inputName] = inputValue
 	})
 	return data
@@ -120,7 +120,7 @@ function validate_image_input(element){
 		$(self).prev().addClass("invalid")
 		$(self).prev().attr("data-hover", hoverText)
 		$(self).attr("data-valid", false)
-	
+
 		$(self).addClass("chat-error-shake");
         setTimeout(function () {
             $(self).removeClass("chat-error-shake");
@@ -157,22 +157,22 @@ function validate_image_input(element){
 			$(self).prev().html("autorenew")
 
 		}
-		
+
 		function imageFound() {
 			$(self).prev().removeClass("loading invalid")
 			$(self).prev().addClass("valid")
 			$(self).prev().html("check_circle_outline")
 		}
-		
+
 		function imageNotFound() {
 			display_not_valid("Image not found")
 		}
-		
+
 		testImage(url);
 	} catch (_) {
 		display_not_valid("Image not found")
 	}
-	
+
 }
 
 function edit_scene_dialog(scene_id) {
@@ -190,12 +190,12 @@ function edit_scene_dialog(scene_id) {
 			}else{
 				rowInput = $(`<input type="text" onClick="this.select();" name=${name} style='width:100%' autocomplete="off" value="${scene[name] || ""}" />`);
 			}
-			 
+
 		}
 		else{
 			rowInput = inputOverride
 		}
-		
+
 		rowInputWrapper.append(rowInput);
 		row.append(rowLabel);
 		row.append(rowInputWrapper);
@@ -219,7 +219,7 @@ function edit_scene_dialog(scene_id) {
 		if (scene.id !== window.CURRENT_SCENE_DATA.id){
 			return
 		}
-	
+
 		const {hpps, vpps, offsetx, offsety, grid_color, grid_line_width, grid_subdivided, grid} = get_edit_form_data()
 		// redraw grid with new information
 		if(grid === "1"){
@@ -297,13 +297,37 @@ function edit_scene_dialog(scene_id) {
 
 	form.append(form_row('title', 'Scene Title'))
 	const playerMapRow = form_row('player_map', 'Player Map', null, true)
-	
+
 	const dmMapRow = form_row('dm_map', 'Dm Map', null, true)
-	
+
 	// add in toggles for these 2 rows
 	playerMapRow.append(form_toggle("player_map_is_video", "Video map?", false, handle_map_toggle_click))
 	dmMapRow.append(form_toggle("dm_map_is_video", "Video map?", false, handle_map_toggle_click))
 	form.append(playerMapRow)
+
+	// add a row but override the normal input with a toggle
+	form.append(form_row(null,
+		'Use Map Layers',
+		form_toggle("use_layered_maps", null, false, function(event) {
+			handle_basic_form_toggle_click(event);
+			if ($(event.currentTarget).hasClass("rc-switch-checked")) {
+				form.find("#layerBox_row").show()
+			} else {
+				form.find("#layerBox_row").hide()
+			}
+		})
+	));
+	const layerBox = $(`<div style='width:100%; display: ${scene.use_layered_maps == '1' ? 'block': 'none'};' id='layerBox_row'/>`);
+	const numbOfLayers = 4;
+	for (let i = 2; i < 2 + numbOfLayers; i++) {
+		const elem = form_row(`player_map_${i}`, `Player Map Layer ${i}`, null, true)
+		elem.append(form_toggle(`player_map_${i}_is_video`, "Video map?", false, handle_map_toggle_click))
+		elem.append(form_toggle(`player_map_${i}_is_active`, "Layer active?", false, handle_map_toggle_click))
+		layerBox.append(elem)
+	}
+	form.append(layerBox)
+
+
 	form.append(dmMapRow)
 	// add a row but override the normal input with a toggle
 	form.append(form_row(null,
@@ -312,7 +336,7 @@ function edit_scene_dialog(scene_id) {
 				handle_basic_form_toggle_click(event);
 				if ($(event.currentTarget).hasClass("rc-switch-checked")) {
 					form.find("#dm_map_row").show()
-					
+
 				} else {
 					form.find("#dm_map_row").hide()
 				}
@@ -322,7 +346,7 @@ function edit_scene_dialog(scene_id) {
 
 	let darknessValue = scene.darkness_filter || 0;
 	let darknessFilterRange = $(`<input name="darkness_filter" class="darkness-filter-range" type="range" value="${darknessValue}" min="0" max="95" step="5"/>`);
-	
+
 	darknessFilterRange.on(' input change', function(){
 		let darknessFilterRangeValue = parseInt(darknessFilterRange.val());
    	 	let darknessPercent = 100 - darknessFilterRangeValue;
@@ -348,15 +372,15 @@ function edit_scene_dialog(scene_id) {
 			// it was checked. now it is no longer checked
 			$(event.currentTarget).removeClass("rc-switch-checked");
 			if(window.ScenesHandler.current_scene_id == scene_id){
-				window.CURRENT_SCENE_DATA.snap = "0";	
-			}	
+				window.CURRENT_SCENE_DATA.snap = "0";
+			}
 		} else {
 			// it was not checked. now it is checked
 			$(event.currentTarget).removeClass("rc-switch-unknown");
 			$(event.currentTarget).addClass("rc-switch-checked");
 			if(window.ScenesHandler.current_scene_id == scene_id){
 				window.CURRENT_SCENE_DATA.snap = "1";
-			}	
+			}
 		}
 	})));
 
@@ -372,14 +396,14 @@ function edit_scene_dialog(scene_id) {
 			if ($(event.currentTarget).hasClass("rc-switch-checked")) {
 				// it was checked. now it is no longer checked
 				$(event.currentTarget).removeClass("rc-switch-checked");
-				gridStroke.hide()	
+				gridStroke.hide()
 				form.find(".sp-replacer").hide()
-				
+
 			} else {
 				// it was not checked. now it is checked
 				$(event.currentTarget).removeClass("rc-switch-unknown");
 				$(event.currentTarget).addClass("rc-switch-checked");
-				gridStroke.show()	
+				gridStroke.show()
 				form.find(".sp-replacer").show()
 			}
 				handle_form_grid_on_change()
@@ -403,7 +427,7 @@ function edit_scene_dialog(scene_id) {
 	colorPickers.on('change.spectrum', handle_form_grid_on_change); // commit the changes when the user clicks the submit button
 	colorPickers.on('hide.spectrum', handle_form_grid_on_change);   // the hide event includes the original color so let's change it back when we get it
 
-	
+
 	wizard = $("<button type='button'><b>Super Mega Wizard</b></button>");
 	manual_button = $("<button type='button'>Manual Grid Data</button>");
 
@@ -420,7 +444,7 @@ function edit_scene_dialog(scene_id) {
 	manual.append($("<div><div style='display:inline-block; width:30%'>Grid is a subdivided 10 units</div><div style='display:inline-block; width:70'%'><input name='grid_subdivided'></div></div>"));
 	manual.append($("<div><div style='display:inline-block; width:30%'>Image Scale Factor</div><div style='display:inline-block; width:70'%'><input name='scale_factor'></div></div>"));
 
-	
+
 	manual.find("input").each(function() {
 		$(this).css("width", "60px");
 		$(this).val(scene[$(this).attr('name')]);
@@ -432,7 +456,7 @@ function edit_scene_dialog(scene_id) {
 			manual.hide();
 		else
 			manual.show();
-		
+
 	});
 
 
@@ -480,7 +504,7 @@ function edit_scene_dialog(scene_id) {
 		if(window.CLOUD)
 			window.ScenesHandler.persist_current_scene();
 		else
-			window.ScenesHandler.persist();	
+			window.ScenesHandler.persist();
 		window.ScenesHandler.reload();
 		$("#wizard_popup").empty().append("You're good to go!!");
 
@@ -502,9 +526,9 @@ function edit_scene_dialog(scene_id) {
 			window.ScenesHandler.scene.upsq = "ft";
 			window.ScenesHandler.scene.hpps /= 2;
 			window.ScenesHandler.scene.vpps /= 2;
-			
+
 			consider_upscaling(window.ScenesHandler.scene);
-			
+
 			$("#wizard_popup").delay(5000).animate({ opacity: 0 }, 4000, function() {
 				$("#wizard_popup").remove();
 			});
@@ -838,7 +862,7 @@ function edit_scene_dialog(scene_id) {
 					$("#grid_15").click(function() { grid_15(); });
 					$("#grid_20").click(function() { grid_20(); });
 					$("#grid_100").click(function() { grid_100(); });
-				
+
 
 				}
 			);
@@ -860,7 +884,7 @@ function edit_scene_dialog(scene_id) {
 				window.ScenesHandler.persist();
 				window.ScenesHandler.switch_scene(scene_id);
 			}
-				
+
 
 
 			$("#edit_dialog").remove();
@@ -915,7 +939,7 @@ function edit_scene_dialog(scene_id) {
 		}
 		$("#edit_dialog").remove();
 		$("#scene_selector").removeAttr("disabled");
-		
+
 	})
 
 
@@ -955,7 +979,7 @@ function edit_scene_dialog(scene_id) {
 	else{
 		form.find("#dm_map_row").hide()
 	}
-	
+
 	container.animate({
 		opacity: '1.0'
 	}, 1000);
@@ -1000,7 +1024,7 @@ function refresh_scenes() {
 				window.MB.sendMessage("custom/myVTT/switch_scene",msg);
 				add_zoom_to_storage()
 			});
-			
+
 			let switch_dm=$("<button class='dm_scenes_button'>DM</button>");
 			if(window.CURRENT_SCENE_DATA && (window.CURRENT_SCENE_DATA.id==window.ScenesHandler.scenes[scene_id].id)){
 				switch_dm.addClass("selected");
@@ -1023,7 +1047,7 @@ function refresh_scenes() {
 				switch_players.attr("disabled","true");
 				switch_dm.attr("disabled","true");
 			}
-			
+
 			controls.append(switch_players);
 			controls.append(switch_dm);
 		}
@@ -1033,7 +1057,7 @@ function refresh_scenes() {
 				switch_button.removeAttr("disabled");
 			else
 				switch_button.attr("disabled","true");
-				
+
 			switch_button.click(function() {
 				window.ScenesHandler.switch_scene(scene_id);
 				$("#scene_selector_toggle").click();
@@ -1058,19 +1082,19 @@ function refresh_scenes() {
 					window.ScenesHandler.persist();
 				}
 				refresh_scenes();
-				
+
 			}
 		});
 		controls.append(delete_button);
 		newobj.append(controls);
 
-		$("#addscene").parent().before(newobj);	
+		$("#addscene").parent().before(newobj);
 	}
 	if(!$("#scene_selector").hasClass("ui-sortable")) {
 		$("#scene_selector").sortable({
 			handle: ".scene_title",
 			forcePlaceholderSize: true,
-			placeholder: "sortable_placeholder", 
+			placeholder: "sortable_placeholder",
 			update: function(event, ui) {
 				let fromSceneIndex = ui.item.attr("data-scene-index");
 				let toSceneIndex;
@@ -1178,7 +1202,7 @@ function init_scene_selector() {
 			refresh_scenes();
 		}
 
-		
+
 
 	});
 	$(window.document.body).append(ss);
@@ -1217,13 +1241,13 @@ function display_scenes() {
 	console.log(window.ScenesHandler.sources[source_name].chapters[chapter_name].scenes);
 	console.log("mostrati...");
 	/*$("#scene_select").empty();
-	
+
 	var source_name=$("#source_select").val();
 	var chapter_name=$("#chapter_select").val();
 	for(property in window.ScenesHandler.sources[source_name].chapters[chapter_name].scenes){
 				var scene=window.ScenesHandler.sources[source_name].chapters[chapter_name].scenes[property];
 				$("#scene_select").append($("<option value='"+property+"'>"+scene.title+"</option>"));
-			}			
+			}
 			$("#scene_select").change();*/
 }
 
@@ -1266,7 +1290,7 @@ function init_ddb_importer(target) {
 	});
 
 	/*	var scene_select=$("<select id='scene_select'/>");
-	
+
 		scene_select.change(function(){
 			console.log('prepare scene properties');
 			var source_name=$("#source_select").val();
@@ -1277,18 +1301,18 @@ function init_ddb_importer(target) {
 			else
 				$("#import_button").attr('disabled','disabled');
 			//window.ScenesHandler.display_scene_properties(source_name,chapter_name,scene_name);
-			
+
 		});*/
 
 
 	/*import_button=$("<button id='import_button'>IMPORT</button>");
 	import_button.attr('disabled','disabled');
-	
+
 	import_button.click(function(){
 		var source_name=$("#source_select").val();
 		var chapter_name=$("#chapter_select").val();
 		var scene_name=$("#scene_select").val();
-		
+
 		scene=window.ScenesHandler.sources[source_name].chapters[chapter_name].scenes[scene_name];
 		$("#scene_properties input[name='player_map']").val(scene.player_map);
 		$("#scene_properties input[name='dm_map']").val(scene.dm_map);
@@ -1363,20 +1387,20 @@ function fill_importer(scene_set, start) {
 
 		b.click(function() {
 			var scene = current_scene;
-		
+
 			$("#scene_properties input[name='player_map']").val(scene.player_map);
 			$("#scene_properties input[name='dm_map']").val(scene.dm_map);
 			$("#scene_properties input[name='title']").val(scene.title);
 			$("#scene_properties input[name='scale']").val(scene.scale);
 
-			
+
 			scene.player_map_is_video === "1" || scene.player_map.includes("youtube") ?
-				$("#player_map_is_video_toggle").addClass('rc-switch-checked') : 
+				$("#player_map_is_video_toggle").addClass('rc-switch-checked') :
 				$("#player_map_is_video_toggle").removeClass('rc-switch-checked')
-			
-		
+
+
 			scene.dm_map_is_video === "1" ?
-				$("dm_map_is_video_toggle").addClass('rc-switch-checked') : 
+				$("dm_map_is_video_toggle").addClass('rc-switch-checked') :
 				$("dm_map_is_video_toggle").removeClass('rc-switch-checked')
 
 
